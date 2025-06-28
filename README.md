@@ -14,3 +14,6 @@ To reset an existing wait times board:
 1. Reset the Arduino.
 2. Wait for the startup "Reset" URL to display.
 3. Navigate to the given URL from any device on the same network as the Arduino.
+4. Reset the Arduino again.
+5. Once the display is awaiting WiFi configuration, connect to the captive "waittimes" network.
+6. Save the WiFi configuration.
