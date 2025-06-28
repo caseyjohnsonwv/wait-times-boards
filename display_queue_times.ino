@@ -8,7 +8,7 @@ MCUFRIEND_kbv tft;
 #define SANDY_TAN RGB565(140, 127, 88)
 
 String parkName = "";
-bool needsInitialDisplayBoot = true;
+bool needsInitialDisplayBoot = false;
 const int maxDisplay = 4;
 int lineNum = 0;
 
@@ -148,5 +148,4 @@ void showWaiting() {
   delay(3000);
   tft.fillScreen(BLACK);
   Serial.println("[READY]");
-  delay(1000);
 }

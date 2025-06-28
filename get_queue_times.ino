@@ -170,8 +170,30 @@ String sanitizeName(String name) {
 }
 
 
+void processRidesJson(JsonVariant ridesVariant) {
+  if (!ridesVariant.is<JsonArray>()) return;
+  for (JsonObject ride : ridesVariant.as<JsonArray>()) {
+    String name = ride["name"].as<String>();
+    String cleanName = "";
+    cleanName = sanitizeName(name);
+
+    bool open = ride["is_open"];
+    int wait = ride["wait_time"];
+    String rideStatus = open ? String(wait) + " min" : "CLOSED";
+
+    if (rideCount < maxTotalRides && name.indexOf("Single") == -1) {
+      rideNames[rideCount] = cleanName;
+      rideWaits[rideCount] = rideStatus;
+      rideCount++;
+    }
+  }
+}
+
+
 void refreshData() {
   if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Refreshing data...");
+    
     WiFiClientSecure client;
     client.setInsecure();  // Disable SSL cert validation for simplicity
 
@@ -192,27 +214,13 @@ void refreshData() {
       }
       
       rideCount = 0;
-      // Iterate over all lands and rides
+
+      // Iterate over all rides contained within lands
       for (JsonObject land : doc["lands"].as<JsonArray>()) {
-        for (JsonObject ride : land["rides"].as<JsonArray>()) {
-          String name = ride["name"].as<String>();
-
-          // Remove non-ASCII characters
-          String cleanName = "";
-          cleanName = sanitizeName(name);
-
-          bool open = ride["is_open"];
-          int wait = ride["wait_time"];
-
-          String rideStatus = open ? String(wait) + " min" : "CLOSED";
-
-          if (rideCount < maxTotalRides && name.indexOf("Single") == -1) {
-            rideNames[rideCount] = cleanName;
-            rideWaits[rideCount] = rideStatus;
-            rideCount++;
-          }
-        }
+        processRidesJson(land["rides"]);
       }
+      // If there's a top-level "rides" array, process that too
+      processRidesJson(doc["rides"]);
 
       Serial.println("[DONE]");
       http.end();
