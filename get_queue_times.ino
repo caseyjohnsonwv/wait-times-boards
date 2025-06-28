@@ -11,8 +11,10 @@ StaticJsonDocument<8192> doc;
 WiFiManager wm;
 char parkNum[4] = "64";
 char parkName[34] = "Islands Of Adventure";
+char headerHexColor[8] = "#000000";
 WiFiManagerParameter parkNumParam("park_num", "Queue-Times Park Number", parkNum, 3);
 WiFiManagerParameter parkNameParam("park_name", "Park Name", parkName, 32);
+WiFiManagerParameter headerHexColorParam("header_hex_color", "Header Hex Color", headerHexColor, 7);
 
 bool shouldSaveConfig = false;
 
@@ -54,6 +56,7 @@ void saveParameters() {
   DynamicJsonDocument json(1024);
   json["parkNum"] = parkNum;
   json["parkName"] = parkName;
+  json["headerHexColor"] = headerHexColor;
 
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
@@ -74,6 +77,7 @@ void setup() {
   wm.setAPCallback(sendAPMessage);
   wm.addParameter(&parkNumParam);
   wm.addParameter(&parkNameParam);
+  wm.addParameter(&headerHexColorParam);
   wm.setTitle("waittimes");
 
   if (SPIFFS.begin()) {
@@ -97,6 +101,7 @@ void setup() {
           Serial.println("\nparsed json");
           strcpy(parkNum, json["parkNum"]);
           strcpy(parkName, json["parkName"]);
+          strcpy(headerHexColor, json["headerHexColor"]);
         } else {
           Serial.println("[ERROR] failed to load json config");
         }
@@ -118,6 +123,7 @@ void setup() {
   if (shouldSaveConfig) {
     strcpy(parkNum, parkNumParam.getValue());
     strcpy(parkName, parkNameParam.getValue());
+    strcpy(headerHexColor, headerHexColorParam.getValue());
     saveParameters();
   }
 
@@ -147,7 +153,7 @@ void setup() {
 
 
 void sendParkInfo() {
-  String parkLine = "P:" + String(parkName);
+  String parkLine = "P:" + String(parkName) + ";" + String(headerHexColor);
   Serial.println(parkLine);
 }
 

@@ -5,12 +5,26 @@ MCUFRIEND_kbv tft;
 #define RGB565(r, g, b) ( ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3) )
 #define BLACK  0x0000
 #define WHITE  0xFFFF
-#define SANDY_TAN RGB565(140, 127, 88)
 
 String parkName = "";
 bool needsInitialDisplayBoot = false;
 const int maxDisplay = 4;
 int lineNum = 0;
+uint16_t headerBackgroundColor = BLACK;
+uint16_t headerTextColor = WHITE;
+
+
+void setHeaderColors(String hexString) {
+  if (hexString.startsWith("#")) hexString = hexString.substring(1);
+  uint32_t hexColor = (uint32_t) strtoul(hexString.c_str(), NULL, 16);
+  uint8_t r = (hexColor >> 16) & 0xFF;
+  uint8_t g = (hexColor >> 8) & 0xFF;
+  uint8_t b = hexColor & 0xFF;
+  headerBackgroundColor = RGB565(r, g, b);
+  // calculate brightness to set header text color
+  float brightness = 0.299f * r + 0.587f * g + 0.114f * b;
+  headerTextColor = (brightness > 127) ? BLACK : WHITE;
+}
 
 
 void setup() {
@@ -43,24 +57,24 @@ void showHeaderFooter() {
   // Header
   tft.setFont(NULL);
   tft.setTextSize(2);
-  tft.setTextColor(WHITE, SANDY_TAN);
+  tft.setTextColor(headerTextColor, headerBackgroundColor);
 
   String headerText = parkName + " - Wait Times";
   int16_t x1, y1;
   uint16_t w, h;
   tft.getTextBounds(headerText, 0, 0, &x1, &y1, &w, &h);
   int xHeader = (tft.width() - w) / 2;
-  tft.fillRect(0, 0, tft.width(), 40, SANDY_TAN); // Optional: clear header area
+  tft.fillRect(0, 0, tft.width(), 40, headerBackgroundColor); // Optional: clear header area
   tft.setCursor(xHeader, 15);
   tft.print(headerText);
 
   // Footer
-  tft.setTextColor(WHITE, SANDY_TAN);
+  tft.setTextColor(headerTextColor, headerBackgroundColor);
   String footerText = "Powered by Queue-Times";
   tft.getTextBounds(footerText, 0, 0, &x1, &y1, &w, &h);
   int yFooter = tft.height() - h - 5;
   int xFooter = tft.width() - w - 10;
-  tft.fillRect(0, yFooter - 5, tft.width(), h + 10, SANDY_TAN); // Optional: clear footer area
+  tft.fillRect(0, yFooter - 5, tft.width(), h + 10, headerBackgroundColor); // Optional: clear footer area
   tft.setCursor(xFooter, yFooter);
   tft.print(footerText);
 }
@@ -83,8 +97,11 @@ void handleSerial() {
       lineNum++;
     }
     else if (payload.startsWith("P:")) {
-      parkName = payload.substring(2);
+      int delimiterIdx = payload.indexOf(';', 2);
+      parkName = payload.substring(2, delimiterIdx);
       parkName.trim();
+      String hexColorString = payload.substring(delimiterIdx + 1);
+      setHeaderColors(hexColorString);
       needsInitialDisplayBoot = true;
     }
   }
