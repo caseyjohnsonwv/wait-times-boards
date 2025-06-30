@@ -104,6 +104,16 @@ void handleSerial() {
       setHeaderColors(hexColorString);
       needsInitialDisplayBoot = true;
     }
+    else if (payload.startsWith("[RESET]")) {
+      tft.fillScreen(BLACK);
+      tft.setCursor(20, tft.height() / 2);
+      tft.print("Resetting...");
+    }
+    else if (payload.startsWith("[RESET COMPLETE]")) {
+      tft.fillScreen(BLACK);
+      tft.setCursor(20, tft.height() / 2);
+      tft.print("Reset complete. Restart required.");
+    }
   }
 }
 
@@ -155,9 +165,10 @@ void showWaiting() {
         tft.print("Awaiting WiFi configuration...");
       }
       else if (payload.startsWith("[ERROR]")) {
+        String errorMessageStr = payload.substring(8);
         tft.fillScreen(BLACK);
         tft.setCursor(20, tft.height() / 2);
-        tft.print("Error connecting to WiFi");
+        tft.print(errorMessageStr);
       }
     }
   }

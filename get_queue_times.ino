@@ -31,12 +31,13 @@ const unsigned long cycleInterval = 7000;
 
 
 void handleReset() {
-  server.send(200, "text/plain", "Resetting configuration.");
   Serial.println("[RESET]");
   wm.resetSettings();
   if (SPIFFS.begin()) {
-    SPIFFS.remove("/config.json");
+    SPIFFS.format();
   }
+  server.send(200, "text/plain", "Resetting configuration.");
+  Serial.println("[RESET COMPLETE]");
   ESP.restart();
 }
 
@@ -59,10 +60,6 @@ void saveParameters() {
   json["headerHexColor"] = headerHexColor;
 
   File configFile = SPIFFS.open("/config.json", "w");
-  if (!configFile) {
-    Serial.println("failed to open config file for writing");
-  }
-
   serializeJson(json, Serial);
   Serial.println();
   serializeJson(json, configFile);
@@ -81,29 +78,22 @@ void setup() {
   wm.setTitle("waittimes");
 
   if (SPIFFS.begin()) {
-    Serial.println("mounted file system");
     if (SPIFFS.exists("/config.json")) {
-      //file exists, reading and loading
-      Serial.println("reading config file");
       File configFile = SPIFFS.open("/config.json", "r");
       if (configFile) {
-        Serial.println("opened config file");
         size_t size = configFile.size();
-        // Allocate a buffer to store contents of the file.
         std::unique_ptr<char[]> buf(new char[size]);
-
         configFile.readBytes(buf.get(), size);
 
         DynamicJsonDocument json(1024);
         auto deserializeError = deserializeJson(json, buf.get());
         serializeJson(json, Serial);
-        if ( ! deserializeError ) {
-          Serial.println("\nparsed json");
+        if (!deserializeError) {
           strcpy(parkNum, json["parkNum"]);
           strcpy(parkName, json["parkName"]);
           strcpy(headerHexColor, json["headerHexColor"]);
         } else {
-          Serial.println("[ERROR] failed to load json config");
+          Serial.println("[ERROR] Failed to load config...");
         }
         configFile.close();
       }
@@ -111,10 +101,9 @@ void setup() {
   }
 
   if (!wm.autoConnect("waittimes", "waittimes")) {
-    Serial.println("failed to connect and hit timeout");
-    delay(3000);
-    ESP.restart();
+    Serial.println("[ERROR] Failed to connect, restarting ESP...");
     delay(5000);
+    ESP.restart();
   }
 
   server.on("/reset", handleReset);
@@ -141,7 +130,7 @@ void setup() {
   while (!ready) {
     if (Serial.available()) {
       incomingString = Serial.readStringUntil('\n');
-      if (incomingString == "[READY]\r") {
+      if (incomingString.startsWith("[READY]")) {
         ready = true;
       }
     }
